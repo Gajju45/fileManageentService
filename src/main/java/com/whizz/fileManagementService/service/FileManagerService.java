@@ -6,18 +6,11 @@ import com.whizz.fileManagementService.pojo.enums.StorageType;
 import com.whizz.fileManagementService.utils.ProjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -45,7 +38,6 @@ public class FileManagerService {
         if (!uploadDirectory.exists()) {
             uploadDirectory.mkdirs();
         }
-
         // Determine the specific directory based on the file extension and ensure it exists
         switch (fileExtension.toLowerCase()) {
             case "png":
