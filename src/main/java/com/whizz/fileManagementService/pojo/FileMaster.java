@@ -19,7 +19,9 @@ import lombok.NoArgsConstructor;
 public class FileMaster extends BaseEntity {
     private String fileName;
     private String filePath;
-    private String fileType;
+    private String fileExtension;
+    private String contentType;
+
     @Enumerated(EnumType.STRING)
     private StorageType storageType;
 

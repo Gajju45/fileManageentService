@@ -21,11 +21,11 @@ public class BaseEntity implements Serializable {
     @Basic(optional = false)
     @Column(name = "_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    protected Long id;
+    protected Long recordId;
 
     @Basic(optional = false)
     @Column(name = "record_id", length = 40, unique = true, nullable = false)
-    protected String recordId = UUID.randomUUID().toString();
+    protected String uuid = UUID.randomUUID().toString();
 
     @Basic(optional = false)
     @Column(name = "active")
