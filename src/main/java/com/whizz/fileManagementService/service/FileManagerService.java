@@ -1,8 +1,11 @@
 package com.whizz.fileManagementService.service;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.whizz.fileManagementService.FileManagerRepository;
+import com.whizz.fileManagementService.bean.BeanFileResponse;
 import com.whizz.fileManagementService.pojo.FileMaster;
-import com.whizz.fileManagementService.pojo.enums.StorageType;
+import com.whizz.fileManagementService.pojo.enums.StorageTypeEnum;
 import com.whizz.fileManagementService.utils.ProjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -20,11 +24,13 @@ public class FileManagerService {
 
     @Autowired
     private FileManagerRepository fileManagerRepository;
+    @Autowired
+    private Cloudinary cloudinary;
 
     @Value("${file.upload.directory}")
     private String fileUploadDirectory;
 
-    public String uploadFileOnLocal(MultipartFile file) throws IOException {
+    public BeanFileResponse uploadFileOnLocal(MultipartFile file) throws IOException {
         // Get the formatted file name
         String fileName = ProjectUtils.getFileName(file.getOriginalFilename()) + "_" + ProjectUtils.getCurrentTimeStamp();
 
@@ -61,18 +67,12 @@ public class FileManagerService {
 
         // Transfer the file to the destination
         file.transferTo(destinationFile);
+        String fileUrl=destinationFile.getParentFile().toString()+File.separator+fileName+"."+fileExtension;
 
         // Save file metadata to the database
-        FileMaster fileMaster = FileMaster.builder()
-                .fileName(fileName)
-                .filePath(destinationFile.getParentFile().toString())
-                .storageType(StorageType.LocalStorage)
-                .contentType(file.getContentType())
-                .fileExtension(fileExtension)
-                .build();
-        fileManagerRepository.save(fileMaster);
+        BeanFileResponse beanFileResponse = saveInDatabase(fileName, fileUrl, StorageTypeEnum.LOCALSTORAGE, file.getContentType(), fileExtension);
 
-        return fileMaster.getUuid();
+        return beanFileResponse;
     }
 
     private File createAndReturnFile(String subDirectory, String fileName, String fileExtension) throws IOException {
@@ -88,10 +88,38 @@ public class FileManagerService {
 
         if (optionalFileMaster.isPresent()) {
             FileMaster fileMaster = optionalFileMaster.get();
-            Path filePath = Paths.get(fileMaster.getFilePath(), fileMaster.getFileName() + "." + fileMaster.getFileExtension());
+            Path filePath = Paths.get(fileMaster.getFileUrl(), fileMaster.getFileName() + "." + fileMaster.getFileExtension());
             return filePath.toFile();
         } else {
             throw new Exception("File not found with UUID: " + uuid);
         }
     }
+
+    public BeanFileResponse uploadCloudinaryFile(MultipartFile file) throws IOException {
+        String folderName = ProjectUtils.getFolderName(file.getContentType());
+        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("folder", folderName));
+        String fileExtension = ProjectUtils.getFileExtension(file.getOriginalFilename());
+        BeanFileResponse beanFileResponse=saveInDatabase(uploadResult.get("display_name").toString(), uploadResult.get("url").toString(), StorageTypeEnum.CLOUDINARY, file.getContentType(), fileExtension);
+        System.out.println(uploadResult);
+        return beanFileResponse;
+
+    }
+
+    public BeanFileResponse saveInDatabase(String fileName, String destinationPath, StorageTypeEnum storageTypeEnum, String contentType, String fileExtension) {
+        FileMaster fileMaster = FileMaster.builder()
+                .fileName(fileName)
+                .fileUrl(destinationPath)
+                .storageType(storageTypeEnum)
+                .contentType(contentType)
+                .fileExtension(fileExtension)
+                .build();
+        fileManagerRepository.save(fileMaster);
+       BeanFileResponse beanFileResponse= BeanFileResponse.builder()
+                .uuid(fileMaster.getUuid())
+                .imageUrl(fileMaster.getFileUrl()).build();
+
+        return beanFileResponse;
+
+    }
+
 }

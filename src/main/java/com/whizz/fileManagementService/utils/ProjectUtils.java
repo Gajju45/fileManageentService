@@ -1,5 +1,7 @@
 package com.whizz.fileManagementService.utils;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public class ProjectUtils {
 
     public static String getFileName(String filename) {
@@ -32,4 +34,37 @@ public class ProjectUtils {
         return System.currentTimeMillis();
     }
 
+    public static String determineFileType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType != null) {
+            if (contentType.startsWith("image/")) {
+                return "image";
+            } else if (contentType.startsWith("video/")) {
+                return "video";
+            } else if (contentType.startsWith("audio/")) {
+                return "audio";
+            } else if (contentType.equals("application/pdf") || contentType.equals("application/msword") ||
+                    contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+                    contentType.equals("application/vnd.ms-excel") ||
+                    contentType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") ||
+                    contentType.equals("application/vnd.ms-powerpoint") ||
+                    contentType.equals("application/vnd.openxmlformats-officedocument.presentationml.presentation")) {
+                return "document";
+            }
+        }
+        return "other";
+    }
+    public static String getFolderName(String contentType) {
+        if (contentType.startsWith("image/")) {
+            return "images";
+        } else if (contentType.startsWith("video/")) {
+            return "videos";
+        } else if (contentType.startsWith("audio/")) {
+            return "audios";
+        } else if (contentType.equals("application/pdf")) {
+            return "pdfs";
+        } else {
+            return "documents";
+        }
+    }
 }

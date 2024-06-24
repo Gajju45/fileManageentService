@@ -1,6 +1,8 @@
 package com.whizz.fileManagementService.controller;
 
+import com.whizz.fileManagementService.bean.BeanFileResponse;
 import com.whizz.fileManagementService.bean.ResponsePacket;
+import com.whizz.fileManagementService.pojo.enums.StorageTypeEnum;
 import com.whizz.fileManagementService.service.FileManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -31,14 +33,19 @@ public class FileController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<ResponsePacket> singleFileUpload(@RequestParam("file") MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
-            System.out.println("Please Select File First.");
-        }
+    public ResponseEntity<ResponsePacket> singleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("storageType") StorageTypeEnum storageType) throws IOException {
+        BeanFileResponse beanFileResponse = null;
         ResponsePacket responsePacket;
-        String uuid = fileManagerService.uploadFileOnLocal(file);
-        responsePacket = ResponsePacket.builder()
-                .statusCode(0).message("file Uploaded  Successfully").data(uuid).build();
+        if (storageType.equals(StorageTypeEnum.LOCALSTORAGE)) {
+            if (file.isEmpty()) {
+                System.out.println("Please Select File First.");
+            }
+            beanFileResponse = fileManagerService.uploadFileOnLocal(file);
+        } else if (storageType.equals(StorageTypeEnum.CLOUDINARY)) {
+            beanFileResponse = fileManagerService.uploadCloudinaryFile(file);
+
+        }
+        responsePacket = ResponsePacket.builder().statusCode(0).success(true).message("file Uploaded  Successfully").data(beanFileResponse).build();
         return new ResponseEntity<>(responsePacket, HttpStatus.OK);
 
     }
@@ -53,10 +60,7 @@ public class FileController {
             if (resource.exists() && resource.isReadable()) {
                 String contentType = Files.probeContentType(path);
 
-                return ResponseEntity.ok()
-                        .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                        .body(resource);
+                return ResponseEntity.ok().contentType(org.springframework.http.MediaType.parseMediaType(contentType)).header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"").body(resource);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
             }
